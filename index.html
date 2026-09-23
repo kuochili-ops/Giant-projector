@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>𓃥 白六巨大投影機</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #030308;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #toggle-panel-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 20, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            color: #00f0ff;
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            z-index: 11;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #toggle-panel-btn:hover {
+            background: rgba(0, 240, 255, 0.15);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.4);
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 70px;
+            right: 20px;
+            background: rgba(10, 10, 20, 0.88);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            padding: 20px;
+            border-radius: 12px;
+            color: #fff;
+            width: 320px;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-10px) scale(0.95);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        #ui-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0) scale(1);
+        }
+
+        h2 {
+            margin: 0 0 15px 0;
+            font-size: 1.1rem;
+            color: #00f0ff;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .value-val {
+            color: #00f0ff;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 60px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            color: #fff;
+            box-sizing: border-box;
+            outline: none;
+            font-size: 0.85rem;
+            resize: vertical;
+        }
+
+        textarea:focus {
+            border-color: #00f0ff;
+        }
+
+        .color-pickers {
+            display: flex;
+            gap: 10px;
+        }
+
+        .color-picker-item {
+            flex: 1;
+        }
+
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 100%;
+            height: 35px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #00f0ff;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 240, 255, 0.2);
+            border: 1px solid #00f0ff;
+            color: #00f0ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 5px;
+            transition: all 0.2s;
+        }
+
+        .btn-action:hover {
+            background: rgba(0, 240, 255, 0.4);
+        }
+
+        .btn-action.recording {
+            background: #ff0055 !important;
+            border-color: #ff0055 !important;
+            color: #fff !important;
+            animation: pulse-rec 1.2s infinite ease-in-out;
+        }
+
+        @keyframes pulse-rec {
+            0% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0.7); }
+            70% { box-shadow: 0 0 0 12px rgba(255, 0, 85, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 0, 85, 0); }
+        }
+
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00f0ff;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            background: rgba(0,0,0,0.85);
+            padding: 15px 30px;
+            border-radius: 30px;
+            border: 1px solid #00f0ff;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            text-align: center;
+        }
+
+        #rec-indicator {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 0, 85, 0.9);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            z-index: 100;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+        }
+
+        .rec-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #fff;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0.2; }
+        }
+    </style>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+</head>
+<body>
+
+    <div id="loading">載入 3D 模型中...</div>
+    
+    <div id="rec-indicator">
+        <div class="rec-dot"></div>
+        <span>REC 自動錄影輪播中...</span>
+    </div>
+
+    <button id="toggle-panel-btn">⚙️ 設定面板</button>
+
+    <div id="ui-panel">
+        <h2>𓃥 白六巨大投影機</h2>
+
+        <div class="control-group">
+            <button id="share-btn" class="btn-action" style="background: rgba(255, 215, 0, 0.2); border-color: #ffd700; color:#ffd700;">🔗 複製設定與訊息分享網址</button>
+            <button id="record-btn" class="btn-action" style="background: rgba(255, 0, 128, 0.2); border-color: #ff0080; color:#ff0080;">🎥 開始自動錄影輪播 (播完自動存檔)</button>
+        </div>
+
+        <div class="control-group">
+            <button id="front-view-btn" class="btn-action" style="background: rgba(0, 240, 255, 0.1); border-color: #00f0ff; color:#00f0ff;">🎥 正面視覺歸位</button>
+        </div>
+
+        <div class="control-group">
+            <label for="projText"><span>輪播訊息 (每行算一條)</span></label>
+            <textarea id="projText">DAWSON COLLEGE
+50 YEARS ANNIVERSARY
+WELCOME TO THE LIGHT SHOW
+CREATIVE 3D MAPPING</textarea>
+        </div>
+
+        <div class="control-group color-pickers">
+            <div class="color-picker-item">
+                <label for="textColor">字體顏色</label>
+                <input type="color" id="textColor" value="#00ffff">
+            </div>
+            <div class="color-picker-item">
+                <label for="glowColor">霓虹發光</label>
+                <input type="color" id="glowColor" value="#ff00aa">
+            </div>
+            <div class="color-picker-item">
+                <label for="baseProjColor">布條底色</label>
+                <input type="color" id="baseProjColor" value="#112244">
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="displayTime"><span>每行停留時間</span><span id="displayTimeVal" class="value-val">4.0s</span></label>
+            <input type="range" id="displayTime" min="1" max="10" value="4" step="0.5">
+        </div>
+
+        <div class="control-group">
+            <label for="animInSpeed"><span>文字進場時間</span><span id="animInSpeedVal" class="value-val">0.7s</span></label>
+            <input type="range" id="animInSpeed" min="0.2" max="8.0" value="0.7" step="0.1">
+        </div>
+
+        <div class="control-group">
+            <label for="animOutSpeed"><span>文字離場時間</span><span id="animOutSpeedVal" class="value-val">0.7s</span></label>
+            <input type="range" id="animOutSpeed" min="0.2" max="8.0" value="0.7" step="0.1">
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        let scene, camera, renderer, controls;
+        let textTexture, textCanvas, textCtx;
+        let baseTexture, baseCanvas, baseCtx;
+        let baseMaterial;
+
+        let facadeRibbonGroup = new THREE.Group();
+        let mainBuildingModel = null;
+        let buildingMeshes = [];
+        let stageSpotlights = [];
+
+        const BASE_GROUND_Y = -0.37;
+        const FIXED_PROJ_Y = 0.7;
+
+        // 錄影相關變數
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isAutoRecording = false;
+
+        // 最新微調決定的 14 柱座標數據
+        let defaultWallNodes = [
+            [-3.98, 0.03],
+            [-3.12, 0.02],
+            [-3.1, -1.05],
+            [-1.45, -1.05],
+            [-1.35, 0.02],
+            [-0.51, -0.01],
+            [-0.52, -0.87],
+            [0.3, -0.83],
+            [0.41, 0.03],
+            [1.23, 0.03],
+            [1.23, -1.17],
+            [2.81, -1.27],
+            [2.77, -0.18],
+            [3.6, -0.16]
+        ];
+
+        let messageList = [];
+        let currentMsgIndex = 0;
+        let animState = 'IN';
+        let animProgress = 0;
+        let holdTimer = 0;
+        let transitionTimer = 0;
+
+        const TRANSITION_DURATION = 10.0;
+        let currentEffect = 'SNOW';
+        const effectTypes = ['SNOW', 'ROSES', 'GOLDFISH', 'MATRIX', 'FIREWORKS', 'PACMAN'];
+
+        let lastTimestamp = 0;
+
+        let inType = 'BOTTOM';
+        let outType = 'TOP';
+        const animTypes = ['TOP', 'BOTTOM', 'LEFT', 'RIGHT', 'SCALE'];
+
+        let effectParticles = [];
+        let pacmanData = null;
+        let fireworkTimer = 0;
+
+        const MODEL_URL = './quill-_dawson_college_50_years.glb';
+
+        init();
+        animate(0);
+
+        function init() {
+            const container = document.getElementById('canvas-container');
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x03030b);
+            scene.fog = new THREE.FogExp2(0x03030b, 0.012);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 3.5, 12);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.enableZoom = true;
+            controls.minDistance = 2;
+            controls.maxDistance = 35;
+            controls.maxPolarAngle = Math.PI / 2 - 0.01;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x88bbff, 1.5);
+            dirLight.position.set(10, 20, 15);
+            scene.add(dirLight);
+
+            const grid = new THREE.GridHelper(50, 50, 0x00f0ff, 0x111122);
+            grid.position.y = BASE_GROUND_Y;
+            scene.add(grid);
+
+            scene.add(facadeRibbonGroup);
+
+            createProjectionTextures();
+            createStageSpotlights();
+
+            // 解析 URL 參數
+            parseURLParams();
+
+            const loader = new GLTFLoader();
+            loader.load(
+                MODEL_URL,
+                (gltf) => {
+                    mainBuildingModel = gltf.scene;
+                    mainBuildingModel.position.set(0, 0, 0);
+
+                    mainBuildingModel.traverse((child) => {
+                        if (child.isMesh) {
+                            buildingMeshes.push(child);
+                        }
+                    });
+
+                    scene.add(mainBuildingModel);
+
+                    controls.target.set(-0.09, 1.53, -0.65);
+                    controls.update();
+
+                    buildSeamless90DegreeRibbon(defaultWallNodes);
+                    hideLoading();
+                },
+                (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const percent = Math.round((xhr.loaded / xhr.total) * 100);
+                        document.getElementById('loading').innerText = `載入 3D 模型中... ${percent}%`;
+                    }
+                },
+                (error) => {
+                    console.warn('GLB 載入失敗', error);
+                }
+            );
+
+            bindUIEvents();
+            window.addEventListener('resize', onWindowResize);
+
+            updateMessageList();
+        }
+
+        // 解析與載入網址參數
+        function parseURLParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.has('msg')) {
+                try {
+                    document.getElementById('projText').value = decodeURIComponent(urlParams.get('msg'));
+                } catch(e){}
+            }
+            if (urlParams.has('textColor')) document.getElementById('textColor').value = '#' + urlParams.get('textColor');
+            if (urlParams.has('glowColor')) document.getElementById('glowColor').value = '#' + urlParams.get('glowColor');
+            if (urlParams.has('baseColor')) {
+                document.getElementById('baseProjColor').value = '#' + urlParams.get('baseColor');
+                updateBaseTexture();
+            }
+            if (urlParams.has('time')) {
+                document.getElementById('displayTime').value = urlParams.get('time');
+                document.getElementById('displayTimeVal').innerText = urlParams.get('time') + 's';
+            }
+            if (urlParams.has('inSpeed')) {
+                document.getElementById('animInSpeed').value = urlParams.get('inSpeed');
+                document.getElementById('animInSpeedVal').innerText = urlParams.get('inSpeed') + 's';
+            }
+            if (urlParams.has('outSpeed')) {
+                document.getElementById('animOutSpeed').value = urlParams.get('outSpeed');
+                document.getElementById('animOutSpeedVal').innerText = urlParams.get('outSpeed') + 's';
+            }
+        }
+
+        // 生成分享網址
+        function generateShareURL() {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const params = new URLSearchParams();
+
+            params.set('msg', encodeURIComponent(document.getElementById('projText').value));
+            params.set('textColor', document.getElementById('textColor').value.replace('#', ''));
+            params.set('glowColor', document.getElementById('glowColor').value.replace('#', ''));
+            params.set('baseColor', document.getElementById('baseProjColor').value.replace('#', ''));
+            params.set('time', document.getElementById('displayTime').value);
+            params.set('inSpeed', document.getElementById('animInSpeed').value);
+            params.set('outSpeed', document.getElementById('animOutSpeed').value);
+
+            return `${baseUrl}?${params.toString()}`;
+        }
+
+        // 自動錄影控制
+        function startRecording() {
+            if (isAutoRecording) return;
+
+            // 切換為正面視覺
+            camera.position.set(0, 3.5, 12);
+            controls.target.set(-0.09, 1.53, -0.65);
+            controls.update();
+
+            const canvas = renderer.domElement;
+            const stream = canvas.captureStream(60);
+
+            recordedChunks = [];
+            
+            const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+            try {
+                mediaRecorder = new MediaRecorder(stream, options);
+            } catch (e) {
+                mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+            }
+
+            mediaRecorder.ondataavailable = (event) => {
+                if (event.data && event.data.size > 0) {
+                    recordedChunks.push(event.data);
+                }
+            };
+
+            mediaRecorder.onstop = saveVideo;
+
+            // 從第一條訊息開始播放與記錄
+            currentMsgIndex = 0;
+            animState = 'IN';
+            animProgress = 0;
+            isAutoRecording = true;
+
+            mediaRecorder.start();
+
+            const recordBtn = document.getElementById('record-btn');
+            recordBtn.innerText = '⏹️ 手動停止並存檔';
+            recordBtn.classList.add('recording');
+            document.getElementById('rec-indicator').style.display = 'flex';
+        }
+
+        function stopRecording() {
+            if (!isAutoRecording) return;
+            isAutoRecording = false;
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+
+            const recordBtn = document.getElementById('record-btn');
+            recordBtn.innerText = '🎥 開始自動錄影輪播 (播完自動存檔)';
+            recordBtn.classList.remove('recording');
+            document.getElementById('rec-indicator').style.display = 'none';
+        }
+
+        function saveVideo() {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `𓃥_白六巨大投影機_光雕展示_${new Date().toISOString().slice(0,10)}.webm`;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        function buildSeamless90DegreeRibbon(wallNodes) {
+            while (facadeRibbonGroup.children.length > 0) {
+                const child = facadeRibbonGroup.children[0];
+                facadeRibbonGroup.remove(child);
+                if (child.geometry) child.geometry.dispose();
+            }
+
+            if (wallNodes.length < 2) return;
+
+            const yPos = FIXED_PROJ_Y;
+            const ribbonHeight = 1.2;
+
+            const points2D = wallNodes.map(n => new THREE.Vector2(n[0], n[1]));
+            
+            let totalDist = 0;
+            const dists = [0];
+            for (let i = 0; i < points2D.length - 1; i++) {
+                const d = points2D[i].distanceTo(points2D[i+1]);
+                totalDist += d;
+                dists.push(totalDist);
+            }
+
+            if (totalDist === 0) return;
+
+            const numVertices = points2D.length * 2;
+            const positions = new Float32Array(numVertices * 3);
+            const uvs = new Float32Array(numVertices * 2);
+            const indices = [];
+
+            for (let i = 0; i < points2D.length; i++) {
+                const pt = points2D[i];
+                const u = dists[i] / totalDist;
+
+                const vTopIdx = (i * 2) * 3;
+                const vBotIdx = (i * 2 + 1) * 3;
+
+                positions[vTopIdx] = pt.x;
+                positions[vTopIdx + 1] = yPos + ribbonHeight / 2;
+                positions[vTopIdx + 2] = pt.y;
+
+                positions[vBotIdx] = pt.x;
+                positions[vBotIdx + 1] = yPos - ribbonHeight / 2;
+                positions[vBotIdx + 2] = pt.y;
+
+                const uvTopIdx = (i * 2) * 2;
+                const uvBotIdx = (i * 2 + 1) * 2;
+
+                uvs[uvTopIdx] = u;
+                uvs[uvTopIdx + 1] = 1.0;
+
+                uvs[uvBotIdx] = u;
+                uvs[uvBotIdx + 1] = 0.0;
+
+                if (i < points2D.length - 1) {
+                    const a = i * 2;
+                    const b = i * 2 + 1;
+                    const c = (i + 1) * 2;
+                    const d = (i + 1) * 2 + 1;
+
+                    indices.push(a, b, c);
+                    indices.push(b, d, c);
+                }
+            }
+
+            const ribbonGeo = new THREE.BufferGeometry();
+            ribbonGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            ribbonGeo.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            ribbonGeo.setIndex(indices);
+            ribbonGeo.computeVertexNormals();
+
+            baseMaterial = new THREE.MeshBasicMaterial({
+                map: baseTexture,
+                transparent: true,
+                opacity: 0.65,
+                blending: THREE.NormalBlending,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            const baseMesh = new THREE.Mesh(ribbonGeo, baseMaterial);
+            facadeRibbonGroup.add(baseMesh);
+
+            const textMat = new THREE.MeshBasicMaterial({
+                map: textTexture,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.NormalBlending,
+                depthWrite: false,
+                side: THREE.DoubleSide
+            });
+            const textMesh = new THREE.Mesh(ribbonGeo.clone(), textMat);
+            textMesh.position.y += 0.002;
+            facadeRibbonGroup.add(textMesh);
+        }
+
+        function createProjectionTextures() {
+            textCanvas = document.createElement('canvas');
+            textCanvas.width = 4096;
+            textCanvas.height = 1024;
+            textCtx = textCanvas.getContext('2d');
+            textTexture = new THREE.CanvasTexture(textCanvas);
+            textTexture.minFilter = THREE.LinearFilter;
+
+            baseCanvas = document.createElement('canvas');
+            baseCanvas.width = 1024;
+            baseCanvas.height = 256;
+            baseCtx = baseCanvas.getContext('2d');
+            baseTexture = new THREE.CanvasTexture(baseCanvas);
+
+            updateBaseTexture();
+        }
+
+        function updateBaseTexture() {
+            const hex = document.getElementById('baseProjColor').value;
+            
+            const r = parseInt(hex.slice(1,3), 16);
+            const g = parseInt(hex.slice(3,5), 16);
+            const b = parseInt(hex.slice(5,7), 16);
+
+            baseCtx.clearRect(0, 0, 1024, 256);
+            const gradient = baseCtx.createLinearGradient(0, 0, 1024, 0);
+            gradient.addColorStop(0, 'rgba(0,0,0,0)');
+            gradient.addColorStop(0.08, `rgba(${r},${g},${b}, 0.7)`);
+            gradient.addColorStop(0.5, `rgba(${r},${g},${b}, 0.7)`);
+            gradient.addColorStop(0.92, `rgba(${r},${g},${b}, 0.7)`);
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+            baseCtx.fillStyle = gradient;
+            baseCtx.fillRect(0, 0, 1024, 256);
+
+            if (baseTexture) baseTexture.needsUpdate = true;
+        }
+
+        function hideLoading() {
+            const loadingEl = document.getElementById('loading');
+            if (loadingEl) {
+                loadingEl.style.opacity = '0';
+                setTimeout(() => loadingEl.remove(), 500);
+            }
+        }
+
+        function createStageSpotlights() {
+            const colors = [0x00f0ff, 0xff00aa];
+            for (let i = 0; i < 2; i++) {
+                const spot = new THREE.SpotLight(colors[i], 18);
+                spot.angle = 0.45;
+                spot.penumbra = 0.5;
+                spot.position.set(i === 0 ? -6 : 6, 0.5, 6);
+                scene.add(spot);
+                stageSpotlights.push(spot);
+            }
+        }
+
+        function updateMessageList() {
+            const rawText = document.getElementById('projText').value;
+            messageList = rawText.split('\n').map(t => t.trim()).filter(t => t.length > 0);
+            if (messageList.length === 0) messageList = ['DAWSON COLLEGE'];
+            currentMsgIndex = 0;
+            animState = 'IN';
+            animProgress = 0;
+            holdTimer = 0;
+            pickNextAnimTypes();
+        }
+
+        function pickNextAnimTypes() {
+            inType = animTypes[Math.floor(Math.random() * animTypes.length)];
+            outType = animTypes[Math.floor(Math.random() * animTypes.length)];
+        }
+
+        function spawnFireworkRocket() {
+            const W = textCanvas.width;
+            const H = textCanvas.height;
+            effectParticles.push({
+                x: Math.random() * (W - 800) + 400,
+                y: H + 100,
+                targetY: Math.random() * (H * 0.6) + H * 0.1,
+                speed: Math.random() * 8 + 12,
+                exploded: false,
+                sparks: [],
+                hue: Math.random() * 360
+            });
+        }
+
+        function initRandomTransitionEffect() {
+            currentEffect = effectTypes[Math.floor(Math.random() * effectTypes.length)];
+            effectParticles = [];
+
+            const W = textCanvas.width;
+            const H = textCanvas.height;
+
+            if (currentEffect === 'SNOW') {
+                for (let i = 0; i < 250; i++) {
+                    effectParticles.push({
+                        x: Math.random() * W,
+                        y: Math.random() * -H,
+                        size: Math.random() * 12 + 4,
+                        fallSpeed: Math.random() * 60 + 40,
+                        swingSpeed: Math.random() * 2 + 1,
+                        swingRange: Math.random() * 40 + 20,
+                        initialX: 0
+                    });
+                }
+                effectParticles.forEach(p => p.initialX = p.x);
+            } else if (currentEffect === 'ROSES') {
+                const roseCount = Math.floor(Math.random() * 70) + 30;
+                for (let i = 0; i < roseCount; i++) {
+                    effectParticles.push({
+                        x: Math.random() * (W - 300) + 150,
+                        y: Math.random() * (H - 200) + 100,
+                        size: Math.random() * 60 + 45,
+                        rot: Math.random() * Math.PI * 2,
+                        rotSpeed: (Math.random() - 0.5) * 0.04,
+                        scale: 0.01,
+                        growSpeed: Math.random() * 0.8 + 0.3,
+                        maxScale: Math.random() * 1.3 + 0.7
+                    });
+                }
+            } else if (currentEffect === 'GOLDFISH') {
+                const fishCount = Math.floor(Math.random() * 10) + 6;
+                const colorPresets = [
+                    'hsl(15, 100%, 55%)',
+                    'hsl(35, 100%, 50%)',
+                    'hsl(350, 100%, 60%)',
+                    'hsl(0, 0%, 95%)',
+                    'hsl(25, 90%, 40%)'
+                ];
+
+                for (let i = 0; i < fishCount; i++) {
+                    const fishColor = colorPresets[Math.floor(Math.random() * colorPresets.length)];
+                    effectParticles.push({
+                        x: -300 - Math.random() * 1000,
+                        y: Math.random() * (H - 300) + 150,
+                        speed: Math.random() * 8 + 5,
+                        size: Math.random() * 80 + 100,
+                        color: fishColor,
+                        tailAngle: Math.random() * 10,
+                        bubbles: []
+                    });
+                }
+            } else if (currentEffect === 'MATRIX') {
+                const cols = 70;
+                const colW = W / cols;
+                for (let i = 0; i < cols; i++) {
+                    effectParticles.push({
+                        x: i * colW,
+                        y: Math.random() * -H,
+                        speed: Math.random() * 10 + 8,
+                        chars: '0123456789ABCDEFｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅ二三四五六七八九𓃥'
+                    });
+                }
+            } else if (currentEffect === 'FIREWORKS') {
+                fireworkTimer = 0;
+                for (let i = 0; i < 5; i++) {
+                    spawnFireworkRocket();
+                }
+            } else if (currentEffect === 'PACMAN') {
+                const dir = Math.random() > 0.5 ? 1 : -1;
+                const startX = dir === 1 ? -600 : W + 600;
+                const endTargetX = dir === 1 ? W - 800 : 800;
+                
+                pacmanData = {
+                    dir: dir,
+                    x: startX,
+                    y: H / 2,
+                    speed: 850,
+                    ghosts: [
+                        { name: 'Blinky', color: '#ff0000', offset: 550 },
+                        { name: 'Pinky', color: '#ffb8ff', offset: 1000 },
+                        { name: 'Inky', color: '#00ffff', offset: 1450 },
+                        { name: 'Clyde', color: '#ffb852', offset: 1900 }
+                    ],
+                    dots: [],
+                    powerPellet: { x: endTargetX, y: H / 2, eaten: false }
+                };
+
+                const minX = Math.min(startX, endTargetX);
+                const maxX = Math.max(startX, endTargetX);
+                for (let x = minX + 400; x < maxX - 400; x += 320) {
+                    pacmanData.dots.push({ x: x, y: H / 2, eaten: false });
+                }
+            }
+        }
+
+        function drawGhost(ctx, x, y, size, color, dir, isScared, animTime) {
+            ctx.save();
+            ctx.translate(x, y);
+
+            const gColor = isScared ? '#0033ff' : color;
+            ctx.fillStyle = gColor;
+            ctx.shadowColor = gColor;
+            ctx.shadowBlur = 45;
+
+            const r = size / 2;
+            ctx.beginPath();
+            ctx.arc(0, -r / 4, r, Math.PI, 0, false);
+            ctx.lineTo(r, r);
+
+            const wave = Math.sin(animTime * 12) * 20;
+            ctx.lineTo(r * 0.6, r - wave);
+            ctx.lineTo(r * 0.2, r);
+            ctx.lineTo(-r * 0.2, r - wave);
+            ctx.lineTo(-r * 0.6, r);
+            ctx.lineTo(-r, r - wave);
+            ctx.lineTo(-r, -r / 4);
+            ctx.closePath();
+            ctx.fill();
+
+            if (isScared) {
+                ctx.fillStyle = '#ffff00';
+                ctx.beginPath();
+                ctx.arc(-size * 0.12, -size * 0.1, size * 0.04, 0, Math.PI * 2);
+                ctx.arc(size * 0.12, -size * 0.1, size * 0.04, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 12;
+                ctx.beginPath();
+                ctx.moveTo(-size * 0.2, size * 0.1);
+                ctx.lineTo(-size * 0.1, 0);
+                ctx.lineTo(0, size * 0.1);
+                ctx.lineTo(size * 0.1, 0);
+                ctx.lineTo(size * 0.2, size * 0.1);
+                ctx.stroke();
+            } else {
+                const eyeOffset = dir * size * 0.08;
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-size * 0.13 + eyeOffset, -size * 0.12, size * 0.08, 0, Math.PI * 2);
+                ctx.arc(size * 0.13 + eyeOffset, -size * 0.12, size * 0.08, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#0000ff';
+                ctx.beginPath();
+                ctx.arc(-size * 0.13 + eyeOffset * 1.5, -size * 0.12, size * 0.04, 0, Math.PI * 2);
+                ctx.arc(size * 0.13 + eyeOffset * 1.5, -size * 0.12, size * 0.04, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+        }
+
+        function renderTransitionEffect(dt, progress) {
+            const W = textCanvas.width;
+            const H = textCanvas.height;
+
+            let globalAlpha = 1;
+            if (progress < 0.1) globalAlpha = progress / 0.1;
+            else if (progress > 0.9) globalAlpha = (1 - progress) / 0.1;
+
+            textCtx.save();
+            textCtx.globalAlpha = Math.max(0, Math.min(1, globalAlpha));
+
+            if (currentEffect === 'SNOW') {
+                effectParticles.forEach(p => {
+                    p.y += p.fallSpeed * dt;
+                    p.x = p.initialX + Math.sin(transitionTimer * p.swingSpeed) * p.swingRange;
+
+                    if (p.y > H + 50) p.y = -50;
+
+                    textCtx.fillStyle = '#ffffff';
+                    textCtx.shadowColor = '#00f0ff';
+                    textCtx.shadowBlur = 15;
+                    textCtx.beginPath();
+                    textCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    textCtx.fill();
+                });
+            } else if (currentEffect === 'ROSES') {
+                effectParticles.forEach(p => {
+                    p.rot += p.rotSpeed;
+                    if (p.scale < p.maxScale) p.scale += dt * p.growSpeed;
+                    textCtx.save();
+                    textCtx.translate(p.x, p.y);
+                    textCtx.rotate(p.rot);
+                    textCtx.scale(p.scale, p.scale);
+
+                    textCtx.shadowColor = '#ff1493';
+                    textCtx.shadowBlur = 30;
+                    textCtx.fillStyle = '#ff1493';
+                    textCtx.beginPath();
+                    textCtx.arc(0, 0, p.size, 0, Math.PI * 2);
+                    textCtx.fill();
+
+                    textCtx.strokeStyle = '#ffffff';
+                    textCtx.lineWidth = 6;
+                    for (let r = 12; r < p.size; r += 16) {
+                        textCtx.beginPath();
+                        textCtx.arc(0, 0, r, 0, Math.PI * 1.6);
+                        textCtx.stroke();
+                    }
+                    textCtx.restore();
+                });
+            } else if (currentEffect === 'GOLDFISH') {
+                effectParticles.forEach(p => {
+                    p.x += p.speed * 60 * dt;
+                    p.tailAngle += dt * 5;
+
+                    if (Math.random() < 0.2) {
+                        p.bubbles.push({
+                            x: p.x - p.size,
+                            y: p.y + (Math.random() - 0.5) * 40,
+                            r: Math.random() * 12 + 6,
+                            alpha: 1
+                        });
+                    }
+
+                    p.bubbles.forEach(b => {
+                        b.y -= 15 * dt;
+                        b.alpha -= dt * 0.4;
+                        if (b.alpha > 0) {
+                            textCtx.strokeStyle = `rgba(0, 240, 255, ${b.alpha})`;
+                            textCtx.lineWidth = 3;
+                            textCtx.beginPath();
+                            textCtx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+                            textCtx.stroke();
+                        }
+                    });
+
+                    textCtx.save();
+                    textCtx.translate(p.x, p.y);
+
+                    textCtx.shadowColor = p.color;
+                    textCtx.shadowBlur = 35;
+                    textCtx.fillStyle = p.color;
+                    textCtx.beginPath();
+                    textCtx.ellipse(0, 0, p.size, p.size * 0.45, 0, 0, Math.PI * 2);
+                    textCtx.fill();
+
+                    const tailOffset = Math.sin(p.tailAngle) * 35;
+                    textCtx.fillStyle = p.color;
+                    textCtx.globalAlpha = 0.85;
+                    textCtx.beginPath();
+                    textCtx.moveTo(-p.size * 0.8, 0);
+                    textCtx.lineTo(-p.size * 2.2, -50 + tailOffset);
+                    textCtx.lineTo(-p.size * 2.2, 50 + tailOffset);
+                    textCtx.closePath();
+                    textCtx.fill();
+
+                    textCtx.restore();
+                });
+            } else if (currentEffect === 'MATRIX') {
+                textCtx.font = '900 72px monospace';
+                effectParticles.forEach(p => {
+                    p.y += p.speed * 60 * dt;
+                    if (p.y > H + 600) p.y = -200;
+
+                    for (let i = 0; i < 14; i++) {
+                        const char = p.chars[Math.floor(Math.random() * p.chars.length)];
+                        if (i === 0) {
+                            textCtx.fillStyle = '#ffffff';
+                            textCtx.shadowColor = '#ffffff';
+                            textCtx.shadowBlur = 30;
+                        } else {
+                            textCtx.fillStyle = `rgba(0, 255, 102, ${1 - i / 14})`;
+                            textCtx.shadowColor = '#00ff66';
+                            textCtx.shadowBlur = 20;
+                        }
+                        textCtx.fillText(char, p.x, p.y - i * 72);
+                    }
+                });
+            } else if (currentEffect === 'FIREWORKS') {
+                fireworkTimer += dt;
+                if (fireworkTimer > 0.6 && transitionTimer < TRANSITION_DURATION - 2.5) {
+                    fireworkTimer = 0;
+                    spawnFireworkRocket();
+                }
+
+                effectParticles.forEach(fw => {
+                    if (!fw.exploded) {
+                        fw.y -= fw.speed * 60 * dt;
+                        textCtx.fillStyle = `hsl(${fw.hue}, 100%, 75%)`;
+                        textCtx.shadowColor = `hsl(${fw.hue}, 100%, 75%)`;
+                        textCtx.shadowBlur = 25;
+                        textCtx.beginPath();
+                        textCtx.arc(fw.x, fw.y, 9, 0, Math.PI * 2);
+                        textCtx.fill();
+
+                        if (fw.y <= fw.targetY) {
+                            fw.exploded = true;
+                            for (let i = 0; i < 90; i++) {
+                                const angle = Math.random() * Math.PI * 2;
+                                const spd = Math.random() * 10 + 3;
+                                fw.sparks.push({
+                                    x: fw.x,
+                                    y: fw.y,
+                                    vx: Math.cos(angle) * spd,
+                                    vy: Math.sin(angle) * spd,
+                                    alpha: 1,
+                                    life: Math.random() * 1.5 + 2.0
+                                });
+                            }
+                        }
+                    } else {
+                        fw.sparks.forEach(sp => {
+                            sp.x += sp.vx * 60 * dt;
+                            sp.y += sp.vy * 60 * dt;
+                            sp.vy += 1.2 * dt;
+                            sp.alpha -= dt / sp.life;
+
+                            if (sp.alpha > 0) {
+                                textCtx.fillStyle = `hsla(${fw.hue}, 100%, 70%, ${sp.alpha})`;
+                                textCtx.shadowColor = `hsl(${fw.hue}, 100%, 70%)`;
+                                textCtx.shadowBlur = 15;
+                                textCtx.beginPath();
+                                textCtx.arc(sp.x, sp.y, 7, 0, Math.PI * 2);
+                                textCtx.fill();
+                            }
+                        });
+                    }
+                });
+            } else if (currentEffect === 'PACMAN' && pacmanData) {
+                const pd = pacmanData;
+                const isReversed = transitionTimer >= 5.0 || pd.powerPellet.eaten;
+
+                let currentDir = isReversed ? -pd.dir : pd.dir;
+                pd.x += currentDir * pd.speed * dt;
+
+                pd.dots.forEach(dot => {
+                    if (!dot.eaten) {
+                        if (Math.abs(pd.x - dot.x) < 200) dot.eaten = true;
+                        textCtx.fillStyle = '#ffb8ae';
+                        textCtx.shadowColor = '#ffb8ae';
+                        textCtx.shadowBlur = 25;
+                        textCtx.beginPath();
+                        textCtx.arc(dot.x, dot.y, 45, 0, Math.PI * 2);
+                        textCtx.fill();
+                    }
+                });
+
+                if (!pd.powerPellet.eaten) {
+                    if (Math.abs(pd.x - pd.powerPellet.x) < 220) {
+                        pd.powerPellet.eaten = true;
+                    }
+                    const glowScale = (Math.sin(transitionTimer * 10) + 1) * 15;
+                    textCtx.fillStyle = '#ffffff';
+                    textCtx.shadowColor = '#ffff00';
+                    textCtx.shadowBlur = 50 + glowScale;
+                    textCtx.beginPath();
+                    textCtx.arc(pd.powerPellet.x, pd.powerPellet.y, 110 + glowScale / 2, 0, Math.PI * 2);
+                    textCtx.fill();
+                }
+
+                const mouthAngle = (Math.sin(transitionTimer * 14) + 1) * 0.24;
+
+                textCtx.save();
+                textCtx.translate(pd.x, pd.y);
+
+                let renderRotation = currentDir === 1 ? 0 : Math.PI;
+                textCtx.rotate(renderRotation);
+
+                textCtx.fillStyle = '#ffff00';
+                textCtx.shadowColor = '#ffff00';
+                textCtx.shadowBlur = 60;
+                textCtx.beginPath();
+                textCtx.arc(0, 0, 420, mouthAngle, Math.PI * 2 - mouthAngle);
+                textCtx.lineTo(0, 0);
+                textCtx.closePath();
+                textCtx.fill();
+                textCtx.restore();
+
+                pd.ghosts.forEach(g => {
+                    let ghostX;
+                    if (!isReversed) {
+                        ghostX = pd.x - pd.dir * g.offset;
+                    } else {
+                        ghostX = pd.x + currentDir * (g.offset + 250);
+                    }
+
+                    drawGhost(textCtx, ghostX, pd.y, 720, g.color, currentDir, isReversed, transitionTimer);
+                });
+            }
+
+            textCtx.restore();
+        }
+
+        function renderDynamicCanvas(dt) {
+            const holdTimeTarget = parseFloat(document.getElementById('displayTime').value);
+            const inTimeTarget = parseFloat(document.getElementById('animInSpeed').value);
+            const outTimeTarget = parseFloat(document.getElementById('animOutSpeed').value);
+
+            if (animState === 'IN') {
+                animProgress += dt / inTimeTarget;
+                if (animProgress >= 1) {
+                    animProgress = 1;
+                    animState = 'HOLD';
+                    holdTimer = 0;
+                }
+            } else if (animState === 'HOLD') {
+                holdTimer += dt;
+                if (holdTimer >= holdTimeTarget) {
+                    animState = 'OUT';
+                    animProgress = 0;
+                }
+            } else if (animState === 'OUT') {
+                animProgress += dt / outTimeTarget;
+                if (animProgress >= 1) {
+                    animProgress = 0;
+                    animState = 'TRANSITION';
+                    transitionTimer = 0;
+                    initRandomTransitionEffect();
+                }
+            } else if (animState === 'TRANSITION') {
+                transitionTimer += dt;
+                if (transitionTimer >= TRANSITION_DURATION) {
+                    animState = 'IN';
+                    animProgress = 0;
+                    currentMsgIndex = (currentMsgIndex + 1) % messageList.length;
+
+                    // 若開啟自動錄影且整輪輪播結束，自動停止錄影並下載存檔
+                    if (isAutoRecording && currentMsgIndex === 0) {
+                        stopRecording();
+                    }
+
+                    pickNextAnimTypes();
+                }
+            }
+
+            textCtx.clearRect(0, 0, textCanvas.width, textCanvas.height);
+
+            if (animState === 'TRANSITION') {
+                renderTransitionEffect(dt, transitionTimer / TRANSITION_DURATION);
+            } else {
+                const text = messageList[currentMsgIndex];
+                const textColor = document.getElementById('textColor').value;
+                const glowColor = document.getElementById('glowColor').value;
+
+                let x = textCanvas.width / 2;
+                let y = textCanvas.height / 2;
+                let scale = 1;
+                let alpha = 1;
+
+                let curType = (animState === 'IN') ? inType : (animState === 'OUT' ? outType : 'NONE');
+                let p = (animState === 'HOLD') ? 1 : animProgress;
+
+                let easeP = 1 - Math.pow(1 - p, 3);
+
+                const OFFSET_X = 4800;
+                const OFFSET_Y = 1000;
+
+                if (animState === 'IN') {
+                    alpha = easeP;
+                    if (curType === 'BOTTOM') y = textCanvas.height / 2 + (1 - easeP) * OFFSET_Y;
+                    else if (curType === 'TOP') y = textCanvas.height / 2 - (1 - easeP) * OFFSET_Y;
+                    else if (curType === 'LEFT') x = textCanvas.width / 2 - (1 - easeP) * OFFSET_X;
+                    else if (curType === 'RIGHT') x = textCanvas.width / 2 + (1 - easeP) * OFFSET_X;
+                    else if (curType === 'SCALE') scale = 0.01 + easeP * 0.99;
+                } else if (animState === 'HOLD') {
+                    alpha = 1;
+                    x = textCanvas.width / 2;
+                    y = textCanvas.height / 2;
+                    scale = 1;
+                } else if (animState === 'OUT') {
+                    alpha = Math.max(0, 1 - easeP);
+                    if (curType === 'BOTTOM') y = textCanvas.height / 2 + easeP * OFFSET_Y;
+                    else if (curType === 'TOP') y = textCanvas.height / 2 - easeP * OFFSET_Y;
+                    else if (curType === 'LEFT') x = textCanvas.width / 2 - easeP * OFFSET_X;
+                    else if (curType === 'RIGHT') x = textCanvas.width / 2 + easeP * OFFSET_X;
+                    else if (curType === 'SCALE') scale = Math.max(0.001, 1.0 - easeP);
+                }
+
+                textCtx.save();
+                textCtx.globalAlpha = alpha;
+                textCtx.translate(x, y);
+                textCtx.scale(scale, scale);
+
+                const targetFontSize = 720;
+                textCtx.font = `900 ${targetFontSize}px "Segoe UI", Impact, sans-serif`;
+                textCtx.textAlign = 'center';
+                textCtx.textBaseline = 'middle';
+
+                const availableWidth = textCanvas.width * 0.92;
+                const measuredWidth = textCtx.measureText(text).width || 1000;
+
+                let stretchX = availableWidth / measuredWidth;
+                if (stretchX < 0.6) stretchX = 0.6;
+
+                textCtx.scale(stretchX, 1.0);
+
+                textCtx.shadowColor = glowColor;
+                textCtx.shadowBlur = 50;
+                textCtx.strokeStyle = glowColor;
+                textCtx.lineWidth = 24 / stretchX;
+                textCtx.strokeText(text, 0, 0);
+
+                textCtx.fillStyle = textColor;
+                textCtx.fillText(text, 0, 0);
+
+                textCtx.restore();
+            }
+
+            if (textTexture) textTexture.needsUpdate = true;
+        }
+
+        function bindUIEvents() {
+            const toggleBtn = document.getElementById('toggle-panel-btn');
+            const uiPanel = document.getElementById('ui-panel');
+            const shareBtn = document.getElementById('share-btn');
+            const recordBtn = document.getElementById('record-btn');
+            const frontViewBtn = document.getElementById('front-view-btn');
+
+            const displayTimeEl = document.getElementById('displayTime');
+            const displayTimeVal = document.getElementById('displayTimeVal');
+            
+            const animInSpeedEl = document.getElementById('animInSpeed');
+            const animInSpeedVal = document.getElementById('animInSpeedVal');
+            
+            const animOutSpeedEl = document.getElementById('animOutSpeed');
+            const animOutSpeedVal = document.getElementById('animOutSpeedVal');
+
+            toggleBtn.addEventListener('click', () => {
+                uiPanel.classList.toggle('active');
+            });
+
+            // 複製分享網址
+            shareBtn.addEventListener('click', () => {
+                const shareUrl = generateShareURL();
+                navigator.clipboard.writeText(shareUrl).then(() => {
+                    alert('🔗 已成功複製「專屬訊息與設定網址」至剪貼簿！開啟此網址即可載入您的專屬設定。');
+                }).catch(() => {
+                    prompt('複製失敗，請手動複製以下網址：', shareUrl);
+                });
+            });
+
+            // 錄影按鈕
+            recordBtn.addEventListener('click', () => {
+                if (isAutoRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+
+            frontViewBtn.addEventListener('click', () => {
+                camera.position.set(0, 3.5, 12);
+                controls.target.set(-0.09, 1.53, -0.65);
+                controls.update();
+            });
+
+            document.getElementById('projText').addEventListener('input', updateMessageList);
+
+            document.getElementById('baseProjColor').addEventListener('input', () => {
+                updateBaseTexture();
+            });
+
+            displayTimeEl.addEventListener('input', (e) => {
+                displayTimeVal.innerText = `${parseFloat(e.target.value).toFixed(1)}s`;
+            });
+
+            animInSpeedEl.addEventListener('input', (e) => {
+                animInSpeedVal.innerText = `${parseFloat(e.target.value).toFixed(1)}s`;
+            });
+
+            animOutSpeedEl.addEventListener('input', (e) => {
+                animOutSpeedVal.innerText = `${parseFloat(e.target.value).toFixed(1)}s`;
+            });
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate(timestamp) {
+            requestAnimationFrame(animate);
+
+            const dt = (timestamp - lastTimestamp) / 1000;
+            lastTimestamp = timestamp;
+
+            if (!isNaN(dt) && dt < 0.2) {
+                renderDynamicCanvas(dt);
+            }
+
+            controls.update();
+
+            const time = timestamp * 0.0015;
+            if (stageSpotlights.length >= 2) {
+                stageSpotlights[0].target.position.set(Math.sin(time) * 4, 1.5, -0.65);
+                stageSpotlights[1].target.position.set(Math.cos(time) * 4, 1.5, -0.65);
+                stageSpotlights[0].target.updateMatrixWorld();
+                stageSpotlights[1].target.updateMatrixWorld();
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
